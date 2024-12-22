@@ -1,0 +1,1 @@
+*/5 * * * * source ~/var/CryptoMonitoring/cron-jobs/5minMarket.sh
