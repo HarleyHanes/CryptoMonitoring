@@ -1,0 +1,1 @@
+*/5 * * * * /home/bitnami/var/CryptoMonitoring/cron-jobs/update_market.sh >> /home/bitnami/var/CryptoMonitoring/cron-jobs/market_monitor.log 2>&1
