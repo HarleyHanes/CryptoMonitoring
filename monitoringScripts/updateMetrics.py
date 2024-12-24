@@ -2,6 +2,7 @@ import requests
 import pandas as pd
 import json
 from pathlib import Path
+import numpy as np
 from datetime import datetime
 import pytz  # Library to handle time zones
 
@@ -42,8 +43,36 @@ def fetch_crypto_prices(params):
     except requests.exceptions.RequestException as e:
         print(f"Error fetching data from CoinGecko: {e}")
         return {}
+    
+def calculate_volatility(coin_price, change_rate, change_period,compute_all_times=True):
+    if change_rate <= 0 or change_period <= 0:
+        raise ValueError("Both 'rate' and 'period' must be positive integers.")
+         #Compute the changes in market data since the last change period
+    rate_step = int(change_rate/5)+1
+    #Compute the changes in market data since the last change period
+    period_step = int(12*change_period)+1
+    # if len(coin_price) < rate_step or len(coin_price) < period_step:
+    #     raise ValueError("The input DataFrame must have at least "+str(rate_step)+" and "+str(period_step)+" rows.")
+    
+    # Initialize DataFrame to store results
+    volatility_metrics = pd.DataFrame(index=coin_price.index, columns=["volatility","mean", "std"])
+
+    # Compute the max-min difference for each sliding windoew of 'rate' rows
+    rolling_diff = coin_price.rolling(window=rate_step).apply(lambda x: np.max(x) - np.min(x), raw=True)
+    # Compute rolling mean and std for trailing differences
+    for i in range(len(rolling_diff)):
+        trailing_window = rolling_diff.iloc[max(0, i - period_step + 1):i + 1]
+        volatility_metrics.loc[i, "volatility"] = rolling_diff.iloc[i]  #Volatility value
+        volatility_metrics.loc[i, "mean"] = trailing_window.mean()  # Mean of Volatility
+        volatility_metrics.loc[i, "std"] = trailing_window.std()  # Mean of Volatility
+    return volatility_metrics
+
+
+
 
 def main():
+    compute_all_volatility = False
+    update_market = True
     # Check if the CSV file exists; if not, create it with appropriate headers
     if not volatility_data_path.exists():
         initial_data = {
@@ -69,52 +98,126 @@ def main():
         "ids": "bitcoin,dogecoin",  # The cryptocurrencies to fetch
         "vs_currencies": "usd"     # Convert the values to USD
     }
-
-    market_data = fetch_crypto_prices(params)
-
-    # If the market data is empty, return early
-    if not market_data:
-        return
+    if update_market:
+        market_data = fetch_crypto_prices(params)
 
     # Load existing data from the CSV file
     df_market = pd.read_csv(market_data_path)
     df_volatility = pd.read_csv(volatility_data_path)
+    #Check all coins are read in as floats
+    df_market["Bitcoin Value"] = df_market["Bitcoin Value"].astype(float)
+    df_market["Doge Value"] = df_market["Doge Value"].astype(float)
     # Create new data to append
-    current_time = market_data["Last Update"][0]
-    new_data_market = {
-        "Last Update": current_time,
-        "Bitcoin Value": market_data["Bitcoin Value"][0],
-        "Doge Value": market_data["Doge Value"][0],
-    }
+    if update_market:
+        current_time = market_data["Last Update"][0]
+        new_data_market = {
+            "Last Update": current_time,
+            "Bitcoin Value": market_data["Bitcoin Value"][0].astype(float),
+            "Doge Value": market_data["Doge Value"][0].astype(float),
+        }
+        df_market = pd.concat([df_market, pd.DataFrame([new_data_market])], ignore_index=True)
+        df_market.to_csv(market_data_path, index=False)
+        current_time = df_market["Last Update"].iloc[-1]
+    else:
+        current_time=df_market["Last Update"]
+    #Compute Volatilities
+    bitcoin_volatility_5_1 = calculate_volatility(df_market["Bitcoin Value"], 5, 1,compute_all_times=compute_all_volatility)
+    doge_volatility_5_1 = calculate_volatility(df_market["Doge Value"], 5, 1,compute_all_times=compute_all_volatility)
+    bitcoin_volatility_5_8 = calculate_volatility(df_market["Bitcoin Value"], 5, 8,compute_all_times=compute_all_volatility)
+    doge_volatility_5_8 = calculate_volatility(df_market["Doge Value"], 5, 8,compute_all_times=compute_all_volatility)
+    bitcoin_volatility_5_24 = calculate_volatility(df_market["Bitcoin Value"], 5, 24,compute_all_times=compute_all_volatility)
+    doge_volatility_5_24 = calculate_volatility(df_market["Doge Value"], 5, 24,compute_all_times=compute_all_volatility)
+    
+    bitcoin_volatility_30_8 = calculate_volatility(df_market["Bitcoin Value"], 30, 8,compute_all_times=compute_all_volatility)
+    doge_volatility_30_8 = calculate_volatility(df_market["Doge Value"], 30, 8,compute_all_times=compute_all_volatility)
+    bitcoin_volatility_30_24 = calculate_volatility(df_market["Bitcoin Value"], 30, 24,compute_all_times=compute_all_volatility)
+    doge_volatility_30_24 = calculate_volatility(df_market["Doge Value"], 30, 24,compute_all_times=compute_all_volatility)
+    bitcoin_volatility_30_168 = calculate_volatility(df_market["Bitcoin Value"], 30, 168,compute_all_times=compute_all_volatility)
+    doge_volatility_30_168 = calculate_volatility(df_market["Doge Value"], 30, 168,compute_all_times=compute_all_volatility)
     new_data_volatility = {
         "Last Update": current_time,
-        "Bitcoin Value": market_data["Bitcoin Value"][0],
-        "Bitcoin Volatility 1": 0,  # Placeholder values
-        "Bitcoin Volatility 2": 0,  # Placeholder values
-        "Doge Value": market_data["Doge Value"][0],
-        "Doge Volatility 1": 0,  # Placeholder values
-        "Doge Volatility 2": 0   # Placeholder values
+        "Bitcoin Value": df_market["Bitcoin Value"],
+        "Bitcoin Volatility 5:1": bitcoin_volatility_5_1["volatility"],  # Placeholder values
+        "Bitcoin Volatility 5:1 mean": bitcoin_volatility_5_1["mean"],  # Placeholder values
+        "Bitcoin Volatility 5:1 std": bitcoin_volatility_5_1["std"],  # Placeholder values
+        "Bitcoin Volatility 5:8": bitcoin_volatility_5_8["volatility"],  # Placeholder values
+        "Bitcoin Volatility 5:8 mean": bitcoin_volatility_5_8["mean"],  # Placeholder values
+        "Bitcoin Volatility 5:8 std": bitcoin_volatility_5_8["std"],  # Placeholder values
+        "Bitcoin Volatility 5:24": bitcoin_volatility_5_24["volatility"],  # Placeholder values
+        "Bitcoin Volatility 5:24 mean": bitcoin_volatility_5_24["mean"],  # Placeholder values
+        "Bitcoin Volatility 5:24 std": bitcoin_volatility_5_24["std"],  # Placeholder values
+        "Bitcoin Volatility 30:8": bitcoin_volatility_30_8["volatility"],  # Placeholder values
+        "Bitcoin Volatility 30:8 mean": bitcoin_volatility_30_8["mean"],  # Placeholder values
+        "Bitcoin Volatility 30:8 std": bitcoin_volatility_30_8["std"],  # Placeholder values
+        "Bitcoin Volatility 30:24": bitcoin_volatility_30_24["volatility"],  # Placeholder values
+        "Bitcoin Volatility 30:24 mean": bitcoin_volatility_30_24["mean"],  # Placeholder values
+        "Bitcoin Volatility 30:24 std": bitcoin_volatility_30_24["std"],  # Placeholder values
+        "Bitcoin Volatility 30:168": bitcoin_volatility_30_168["volatility"],  # Placeholder values
+        "Bitcoin Volatility 30:168 mean": bitcoin_volatility_30_168["mean"],  # Placeholder values
+        "Bitcoin Volatility 30:168 std": bitcoin_volatility_30_168["std"],  # Placeholder values
+        "Doge Value": df_market["Doge Value"],
+        "Doge Volatility 5:1": doge_volatility_5_1["volatility"],  # Placeholder values
+        "Doge Volatility 5:1 mean": doge_volatility_5_1["mean"],  # Placeholder values
+        "Doge Volatility 5:1 std": doge_volatility_5_1["std"],  # Placeholder values
+        "Doge Volatility 5:8": doge_volatility_5_8["volatility"],  # Placeholder values
+        "Doge Volatility 5:8 mean": doge_volatility_5_8["mean"],  # Placeholder values
+        "Doge Volatility 5:8 std": doge_volatility_5_8["std"],  # Placeholder values
+        "Doge Volatility 5:24": doge_volatility_5_24["volatility"],  # Placeholder values
+        "Doge Volatility 5:24 mean": doge_volatility_5_24["mean"],  # Placeholder values
+        "Doge Volatility 5:24 std": doge_volatility_5_24["std"],  # Placeholder values
+        "Doge Volatility 30:8": doge_volatility_30_8["volatility"],  # Placeholder values
+        "Doge Volatility 30:8 mean": doge_volatility_30_8["mean"],  # Placeholder values
+        "Doge Volatility 30:8 std": doge_volatility_30_8["std"],  # Placeholder values
+        "Doge Volatility 30:24": doge_volatility_30_24["volatility"],  # Placeholder values
+        "Doge Volatility 30:24 mean": doge_volatility_30_24["mean"],  # Placeholder values
+        "Doge Volatility 30:24 std": doge_volatility_30_24["std"],  # Placeholder values
+        "Doge Volatility 30:168": doge_volatility_30_168["volatility"],  # Placeholder values
+        "Doge Volatility 30:168 mean": doge_volatility_30_168["mean"],  # Placeholder values
+        "Doge Volatility 30:168 std": doge_volatility_30_168["std"]  # Placeholder values
     }
-
-    # Append the new data to the DataFrame
-    df_market = pd.concat([df_market, pd.DataFrame([new_data_market])], ignore_index=True)
-    df_volatility = pd.concat([df_volatility, pd.DataFrame([new_data_volatility])], ignore_index=True)
-
+    if compute_all_volatility:
+        df_volatility = pd.DataFrame(new_data_volatility)
+    else:
+        df_volatility = pd.concat([df_volatility, pd.DataFrame([new_data_volatility])], ignore_index=True)
     # Save the updated DataFrame back to the CSV file
-    df_market.to_csv(market_data_path, index=False)
     df_volatility.to_csv(volatility_data_path, index=False)
+
+    # Replace NaN values with "NaN" for JSON serialization and set 4 sigfigs
+    new_data_volatility = {
+        key: df.fillna(0)
+        for key, df in new_data_volatility.items()
+    }
+    for key, df in new_data_volatility.items():
+        # Ensure rounding only applies to numerical columns
+        new_data_volatility[key] = df.apply(
+            lambda x: int(x * 10000) / 10000 if isinstance(x, (float, int)) else x
+        )
 
     # Save the latest data as JSON
     latest_data = {
-        "Last Update": new_data_volatility["Last Update"],
-        "Bitcoin Value": new_data_volatility["Bitcoin Value"],
-        "Bitcoin Volatility 1": new_data_volatility["Bitcoin Volatility 1"],
-        "Bitcoin Volatility 2": new_data_volatility["Bitcoin Volatility 2"],
-        "Doge Value": new_data_volatility["Doge Value"],
-        "Doge Volatility 1": new_data_volatility["Doge Volatility 1"],
-        "Doge Volatility 2": new_data_volatility["Doge Volatility 2"]
+        "Last Update": new_data_volatility["Last Update"].iloc[-1],
+        "Bitcoin Value": new_data_volatility["Bitcoin Value"].iloc[-1],
+        "Bitcoin Volatility 5:1": new_data_volatility["Bitcoin Volatility 5:1"].iloc[-1],
+        "Bitcoin Volatility 5:1 mean": new_data_volatility["Bitcoin Volatility 5:1 mean"].iloc[-1],
+        "Bitcoin Volatility 5:1 std": new_data_volatility["Bitcoin Volatility 5:1 std"].iloc[-1],
+        "Bitcoin Volatility 5:8": new_data_volatility["Bitcoin Volatility 5:8"].iloc[-1],
+        "Bitcoin Volatility 5:8 mean": new_data_volatility["Bitcoin Volatility 5:8 mean"].iloc[-1],
+        "Bitcoin Volatility 5:8 std": new_data_volatility["Bitcoin Volatility 5:8 std"].iloc[-1],
+        "Bitcoin Volatility 5:24": new_data_volatility["Bitcoin Volatility 5:24"].iloc[-1],
+        "Bitcoin Volatility 5:24 mean": new_data_volatility["Bitcoin Volatility 5:24 mean"].iloc[-1],
+        "Bitcoin Volatility 5:24 std": new_data_volatility["Bitcoin Volatility 5:24 std"].iloc[-1],
+        "Doge Value": new_data_volatility["Doge Value"].iloc[-1],
+        "Doge Volatility 5:1": new_data_volatility["Doge Volatility 5:1"].iloc[-1],
+        "Doge Volatility 5:1 mean": new_data_volatility["Doge Volatility 5:1 mean"].iloc[-1],
+        "Doge Volatility 5:1 std": new_data_volatility["Doge Volatility 5:1 std"].iloc[-1],
+        "Doge Volatility 5:8": new_data_volatility["Doge Volatility 5:8"].iloc[-1],
+        "Doge Volatility 5:8 mean": new_data_volatility["Doge Volatility 5:8 mean"].iloc[-1],
+        "Doge Volatility 5:8 std": new_data_volatility["Doge Volatility 5:8 std"].iloc[-1],
+        "Doge Volatility 5:24": new_data_volatility["Doge Volatility 5:24"].iloc[-1],
+        "Doge Volatility 5:24 mean": new_data_volatility["Doge Volatility 5:24 mean"].iloc[-1],
+        "Doge Volatility 5:24 std": new_data_volatility["Doge Volatility 5:24 std"].iloc[-1]
     }
-
+    print(latest_data)
     with open(json_file_path, "w") as f:
         json.dump(latest_data, f)
 

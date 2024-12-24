@@ -19,7 +19,7 @@
         .container {
             text-align: center;
             width: 90%;
-            max-width: 1200px;
+            max-width: 800px;
         }
         .title {
             font-size: 2rem;
@@ -31,7 +31,7 @@
         }
         .grid {
             display: grid;
-            grid-template-columns: 1fr 1fr 1fr; /* First column for row headers, two for Bitcoin and Doge */
+            grid-template-columns: 1fr 1fr 1fr; /* Two columns for Bitcoin and Doge */
             gap: 1rem;
             text-align: center;
         }
@@ -45,9 +45,16 @@
         }
         .cell {
             background-color: #222;
-            padding: 1rem;
+            padding: 1.5rem;
             border: 1px solid #444;
             border-radius: 8px;
+        }
+        .value {
+            font-size: 1.5rem;
+        }
+        .details {
+            font-size: 0.9rem;
+            margin-top: 0.5rem;
         }
     </style>
 </head>
@@ -56,30 +63,41 @@
         <div class="title">Crypto Monitoring</div>
         <div class="last-update" id="last-update">Last Update: Loading...</div>
         <div class="grid">
-            <!-- Column Headers -->
-            <div class="header"></div>
+            <!-- Row 1: Labels for Bitcoin/Doge -->
+            <div class="header">Metrics</div>
             <div class="header">Bitcoin</div>
             <div class="header">Doge</div>
 
-            <!-- Row 1: Value -->
+            <!-- Row 2: Value -->
             <div class="header">Value</div>
-            <div class="cell" id="bitcoin-value">Loading...</div>
-            <div class="cell" id="doge-value">Loading...</div>
+            <div class="cell">
+                <div class="value" id="bitcoin-value">Loading...</div>
+            </div>
+            <div class="cell">
+                <div class="value" id="doge-value">Loading...</div>
+            </div>
 
-            <!-- Row 2: Volatility 1 -->
-            <div class="header">Volatility 1</div>
-            <div class="cell" id="bitcoin-volatility-1">Loading...</div>
-            <div class="cell" id="doge-volatility-1">Loading...</div>
+            <!-- Row 3: Volatility 5:8 -->
+            <div class="header">Volatility 5:8</div>
+            <div class="cell">
+                <div class="value" id="bitcoin-volatility-5-8">Loading...</div>
+                <div class="details" id="bitcoin-details-5-8">Mean: ..., Std: ...</div>
+            </div>
+            <div class="cell">
+                <div class="value" id="doge-volatility-5-8">Loading...</div>
+                <div class="details" id="doge-details-5-8">Mean: ..., Std: ...</div>
+            </div>
 
-            <!-- Row 3: Volatility 2 -->
-            <div class="header">Volatility 2</div>
-            <div class="cell" id="bitcoin-volatility-2">Loading...</div>
-            <div class="cell" id="doge-volatility-2">Loading...</div>
-
-            <!-- Row 4: Volatility 3 -->
-            <div class="header">Volatility 3</div>
-            <div class="cell" id="bitcoin-volatility-3">Loading...</div>
-            <div class="cell" id="doge-volatility-3">Loading...</div>
+            <!-- Row 3: Volatility 5:24 -->
+            <div class="header">Volatility 5:24</div>
+            <div class="cell">
+                <div class="value" id="bitcoin-volatility-5-24">Loading...</div>
+                <div class="details" id="bitcoin-details-5-24">Mean: ..., Std: ...</div>
+            </div>
+            <div class="cell">
+                <div class="value" id="doge-volatility-5-24">Loading...</div>
+                <div class="details" id="doge-details-5-24">Mean: ..., Std: ...</div>
+            </div>
         </div>
     </div>
 
@@ -94,12 +112,16 @@
                 document.getElementById('last-update').innerText = `Last Update: ${data["Last Update"]}`;
                 document.getElementById('bitcoin-value').innerText = data["Bitcoin Value"] || "N/A";
                 document.getElementById('doge-value').innerText = data["Doge Value"] || "N/A";
-                document.getElementById('bitcoin-volatility-1').innerText = data["Bitcoin Volatility 1"] || "N/A";
-                document.getElementById('doge-volatility-1').innerText = data["Doge Volatility 1"] || "N/A";
-                document.getElementById('bitcoin-volatility-2').innerText = data["Bitcoin Volatility 2"] || "N/A";
-                document.getElementById('doge-volatility-2').innerText = data["Doge Volatility 2"] || "N/A";
-                document.getElementById('bitcoin-volatility-3').innerText = data["Bitcoin Volatility 3"] || "N/A";
-                document.getElementById('doge-volatility-3').innerText = data["Doge Volatility 3"] || "N/A";
+
+                document.getElementById('bitcoin-volatility-5-8').innerText = data["Bitcoin Volatility 5:8"] || "N/A";
+                document.getElementById('bitcoin-details-5-8').innerText = `Mean: ${data["Bitcoin Volatility 5:8 mean"] || "N/A"}, Std: ${data["Bitcoin Volatility 5:8 std"] || "N/A"}`;
+                document.getElementById('doge-volatility-5-8').innerText = data["Doge Volatility 5:8"] || "N/A";
+                document.getElementById('doge-details-5-8').innerText = `Mean: ${data["Doge Volatility 5:8 mean"] || "N/A"}, Std: ${data["Doge Volatility 5:8 std"] || "N/A"}`;
+
+                document.getElementById('bitcoin-volatility-5-24').innerText = data["Bitcoin Volatility 5:24"] || "N/A";
+                document.getElementById('bitcoin-details-5-24').innerText = `Mean: ${data["Bitcoin Volatility 5:24 mean"] || "N/A"}, Std: ${data["Bitcoin Volatility 5:24 std"] || "N/A"}`;
+                document.getElementById('doge-volatility-5-24').innerText = data["Doge Volatility 5:24"] || "N/A";
+                document.getElementById('doge-details-5-24').innerText = `Mean: ${data["Doge Volatility 5:24 mean"] || "N/A"}, Std: ${data["Doge Volatility 5:24 std"] || "N/A"}`;
             } catch (error) {
                 console.error('Error fetching data:', error);
                 document.getElementById('last-update').innerText = "Last Update: Error loading data";
@@ -111,4 +133,6 @@
     </script>
 </body>
 </html>
+
+
 
