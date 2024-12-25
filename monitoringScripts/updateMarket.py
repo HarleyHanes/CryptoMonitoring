@@ -70,8 +70,8 @@ def main():
     current_time = market_data["Last Update"][0]
     new_data_market = {
         "Last Update": current_time,
-        "Bitcoin Value": market_data["Bitcoin Value"][0].astype(float),
-        "Doge Value": market_data["Doge Value"][0].astype(float),
+        "Bitcoin Value": market_data["Bitcoin Value"][0],
+        "Doge Value": market_data["Doge Value"][0],
     }
     df_market = pd.concat([df_market, pd.DataFrame([new_data_market])], ignore_index=True)
     df_market.to_csv(market_data_path, index=False)
