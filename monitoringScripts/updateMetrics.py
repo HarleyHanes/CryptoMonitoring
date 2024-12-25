@@ -72,17 +72,48 @@ def calculate_volatility(coin_price, change_rate, change_period,compute_all_time
 
 def main():
     compute_all_volatility = False
-    update_market = True
     # Check if the CSV file exists; if not, create it with appropriate headers
     if not volatility_data_path.exists():
         initial_data = {
-            "Last Update": [],
-            "Bitcoin Value": [],
-            "Bitcoin Volatility 1": [],
-            "Bitcoin Volatility 2": [],
-            "Doge Value": [],
-            "Doge Volatility 1": [],
-            "Doge Volatility 2": []
+        "Last Update": [],
+        "Bitcoin Value": [],
+        "Bitcoin Volatility 5:1": [],  # Placeholder values
+        "Bitcoin Volatility 5:1 mean": [],  # Placeholder values
+        "Bitcoin Volatility 5:1 std": [],  # Placeholder values
+        "Bitcoin Volatility 5:8": [],  # Placeholder values
+        "Bitcoin Volatility 5:8 mean": [],  # Placeholder values
+        "Bitcoin Volatility 5:8 std": [],  # Placeholder values
+        "Bitcoin Volatility 5:24": [],  # Placeholder values
+        "Bitcoin Volatility 5:24 mean": [],  # Placeholder values
+        "Bitcoin Volatility 5:24 std": [],  # Placeholder values
+        "Bitcoin Volatility 30:8": [],  # Placeholder values
+        "Bitcoin Volatility 30:8 mean": [],  # Placeholder values
+        "Bitcoin Volatility 30:8 std": [],  # Placeholder values
+        "Bitcoin Volatility 30:24": [],  # Placeholder values
+        "Bitcoin Volatility 30:24 mean": [],  # Placeholder values
+        "Bitcoin Volatility 30:24 std": [],  # Placeholder values
+        "Bitcoin Volatility 30:168": [],  # Placeholder values
+        "Bitcoin Volatility 30:168 mean": [],  # Placeholder values
+        "Bitcoin Volatility 30:168 std": [],  # Placeholder values
+        "Doge Value": df_market["Doge Value"],
+        "Doge Volatility 5:1": doge_volatility_5_1["volatility"],  # Placeholder values
+        "Doge Volatility 5:1 mean": doge_volatility_5_1["mean"],  # Placeholder values
+        "Doge Volatility 5:1 std": doge_volatility_5_1["std"],  # Placeholder values
+        "Doge Volatility 5:8": doge_volatility_5_8["volatility"],  # Placeholder values
+        "Doge Volatility 5:8 mean": doge_volatility_5_8["mean"],  # Placeholder values
+        "Doge Volatility 5:8 std": doge_volatility_5_8["std"],  # Placeholder values
+        "Doge Volatility 5:24": doge_volatility_5_24["volatility"],  # Placeholder values
+        "Doge Volatility 5:24 mean": doge_volatility_5_24["mean"],  # Placeholder values
+        "Doge Volatility 5:24 std": doge_volatility_5_24["std"],  # Placeholder values
+        "Doge Volatility 30:8": doge_volatility_30_8["volatility"],  # Placeholder values
+        "Doge Volatility 30:8 mean": doge_volatility_30_8["mean"],  # Placeholder values
+        "Doge Volatility 30:8 std": doge_volatility_30_8["std"],  # Placeholder values
+        "Doge Volatility 30:24": doge_volatility_30_24["volatility"],  # Placeholder values
+        "Doge Volatility 30:24 mean": doge_volatility_30_24["mean"],  # Placeholder values
+        "Doge Volatility 30:24 std": doge_volatility_30_24["std"],  # Placeholder values
+        "Doge Volatility 30:168": doge_volatility_30_168["volatility"],  # Placeholder values
+        "Doge Volatility 30:168 mean": doge_volatility_30_168["mean"],  # Placeholder values
+        "Doge Volatility 30:168 std": doge_volatility_30_168["std"]  # Placeholder values
         }
         pd.DataFrame(initial_data).to_csv(volatility_data_path, index=False)
     if not market_data_path.exists():
@@ -93,33 +124,13 @@ def main():
         }
         pd.DataFrame(initial_data).to_csv(market_data_path, index=False)
 
-    # Pull latest market data from API
-    params = {
-        "ids": "bitcoin,dogecoin",  # The cryptocurrencies to fetch
-        "vs_currencies": "usd"     # Convert the values to USD
-    }
-    if update_market:
-        market_data = fetch_crypto_prices(params)
-
     # Load existing data from the CSV file
     df_market = pd.read_csv(market_data_path)
     df_volatility = pd.read_csv(volatility_data_path)
     #Check all coins are read in as floats
     df_market["Bitcoin Value"] = df_market["Bitcoin Value"].astype(float)
     df_market["Doge Value"] = df_market["Doge Value"].astype(float)
-    # Create new data to append
-    if update_market:
-        current_time = market_data["Last Update"][0]
-        new_data_market = {
-            "Last Update": current_time,
-            "Bitcoin Value": market_data["Bitcoin Value"][0].astype(float),
-            "Doge Value": market_data["Doge Value"][0].astype(float),
-        }
-        df_market = pd.concat([df_market, pd.DataFrame([new_data_market])], ignore_index=True)
-        df_market.to_csv(market_data_path, index=False)
-        current_time = df_market["Last Update"].iloc[-1]
-    else:
-        current_time=df_market["Last Update"]
+    
     #Compute Volatilities
     bitcoin_volatility_5_1 = calculate_volatility(df_market["Bitcoin Value"], 5, 1,compute_all_times=compute_all_volatility)
     doge_volatility_5_1 = calculate_volatility(df_market["Doge Value"], 5, 1,compute_all_times=compute_all_volatility)
@@ -135,7 +146,7 @@ def main():
     bitcoin_volatility_30_168 = calculate_volatility(df_market["Bitcoin Value"], 30, 168,compute_all_times=compute_all_volatility)
     doge_volatility_30_168 = calculate_volatility(df_market["Doge Value"], 30, 168,compute_all_times=compute_all_volatility)
     new_data_volatility = {
-        "Last Update": current_time,
+        "Last Update": df_market["Last Update"],
         "Bitcoin Value": df_market["Bitcoin Value"],
         "Bitcoin Volatility 5:1": bitcoin_volatility_5_1["volatility"],  # Placeholder values
         "Bitcoin Volatility 5:1 mean": bitcoin_volatility_5_1["mean"],  # Placeholder values
